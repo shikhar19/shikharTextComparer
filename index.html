@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Side-by-Side Text Comparer</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .container { display: flex; gap: 20px; }
+        textarea { width: 48%; height: 200px; padding: 10px; border-radius: 5px; }
+        button { padding: 10px 20px; margin-top: 15px; }
+
+        .comparison-box {
+            display: flex;
+            margin-top: 20px;
+            gap: 20px;
+        }
+
+        .panel {
+            width: 48%;
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            border: 1px solid #ddd;
+        }
+
+        .added { background: #c8f7c5; }
+        .removed { background: #f7c5c5; text-decoration: line-through; }
+        .changed { background: #fff3b0; }
+        .identical-msg {
+            margin-top: 20px;
+            padding: 10px;
+            background: #d8ffd8;
+            display: inline-block;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Side-by-Side Text Comparer</h2>
+
+<div class="container">
+    <textarea id="text1" placeholder="Enter first text..."></textarea>
+    <textarea id="text2" placeholder="Enter second text..."></textarea>
+</div>
+
+<button onclick="compareText()">Compare</button>
+
+<div id="identical"></div>
+
+<div class="comparison-box">
+    <div id="leftResult" class="panel"></div>
+    <div id="rightResult" class="panel"></div>
+</div>
+
+<!-- diff-match-patch library -->
+<script src="https://unpkg.com/diff-match-patch"></script>
+
+<script>
+function compareText() {
+    document.getElementById("identical").innerHTML = "";
+    document.getElementById("leftResult").innerHTML = "";
+    document.getElementById("rightResult").innerHTML = "";
+
+    const text1 = document.getElementById("text1").value;
+    const text2 = document.getElementById("text2").value;
+
+    // If texts are exactly identical → show message
+    if (text1 === text2) {
+        document.getElementById("identical").innerHTML =
+            `<div class="identical-msg">✅ Two texts are identical</div>`;
+        return;
+    }
+
+    const dmp = new diff_match_patch();
+    const diffs = dmp.diff_main(text1, text2);
+    dmp.diff_cleanupSemantic(diffs);
+
+    let leftHtml = "";
+    let rightHtml = "";
+
+    diffs.forEach(([type, text]) => {
+        const safe = escapeHtml(text);
+
+        if (type === 0) { 
+            // Equal text in both
+            leftHtml += `<span>${safe}</span>`;
+            rightHtml += `<span>${safe}</span>`;
+        }
+        else if (type === -1) { 
+            // Removed from left
+            leftHtml += `<span class="removed">${safe}</span>`;
+        }
+        else if (type === 1) { 
+            // Added to right
+            rightHtml += `<span class="added">${safe}</span>`;
+        }
+    });
+
+    document.getElementById("leftResult").innerHTML = leftHtml;
+    document.getElementById("rightResult").innerHTML = rightHtml;
+}
+
+function escapeHtml(txt) {
+    return txt.replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;",
+        '"': "&quot;", "'": "&#039;"
+    }[c]));
+}
+</script>
+
+</body>
+</html>
